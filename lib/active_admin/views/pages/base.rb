@@ -29,7 +29,7 @@ module ActiveAdmin
         def build_page
           render 'layouts/header'
           within @body do
-            div :id => "container-fluid" do
+            div :class => "container-fluid" do
               #build_header
               #build_title_bar
               build_page_content
