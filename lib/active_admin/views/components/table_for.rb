@@ -65,8 +65,8 @@ module ActiveAdmin
 
         classes << 'sortable'                         if sort_key
         classes << "sorted-#{current_sort[1]}"        if sort_key && current_sort[0] == sort_key
-        classes << col.data.to_s.downcase.underscore  if col.data.is_a?(Symbol)
-        classes << col.title.to_s.downcase.underscore if [Symbol, String].include?(col.title.class)
+        classes << col.data.to_s.downcase             if col.data.is_a?(Symbol)
+        #classes << col.title.to_s.downcase.underscore if [Symbol, String].include?(col.title.class)
 
         if sort_key
           th :class => classes do
