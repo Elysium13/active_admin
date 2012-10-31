@@ -148,7 +148,8 @@ module ActiveAdmin
         # Adds links to View, Edit and Delete
         def default_actions(options = {})
           options = {
-            :name => ""
+            :name => "",
+            :class => "btn-group"
           }.merge(options)
           column options[:name] do |resource|
             links = ''.html_safe
