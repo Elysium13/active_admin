@@ -71,7 +71,7 @@ module ActiveAdmin
         options[:html][:method] = :get
         options[:html][:class] ||= "filter_form"
         options[:as] = :q
-        clear_link = link_to(I18n.t('active_admin.clear_filters'), "#", :class => "clear_filters_btn")
+        clear_link = link_to(I18n.t('active_admin.clear_filters'), "#", :class => "btn")
         form_for search, options do |f|
           filters.each do |filter_options|
             filter_options = filter_options.dup
@@ -79,8 +79,8 @@ module ActiveAdmin
             f.filter attribute, filter_options
           end
 
-          buttons = content_tag :div, :class => "buttons" do
-            f.submit(I18n.t('active_admin.filter')) +
+          buttons = content_tag :div, :class => "btn-group" do
+            f.submit(I18n.t('active_admin.filter'), :class => "btn") +
               clear_link +
               hidden_field_tags_for(params, :except => [:q, :page])
           end
