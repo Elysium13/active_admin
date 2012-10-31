@@ -71,7 +71,7 @@ module ActiveAdmin
         options[:html][:method] = :get
         options[:html][:class] ||= "filter_form"
         options[:as] = :q
-        clear_link = link_to(I18n.t('active_admin.clear_filters'), "#", :class => "btn")
+        clear_link = link_to(I18n.t('active_admin.clear_filters'), "#", :class => "btn clear_filters_btn")
         form_for search, options do |f|
           filters.each do |filter_options|
             filter_options = filter_options.dup
