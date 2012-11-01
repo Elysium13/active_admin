@@ -17,7 +17,7 @@ module ActiveAdmin
       end
 
       def tag_name
-        'ul'
+        'div'
       end
 
       def build(scopes, options = {})
@@ -31,20 +31,20 @@ module ActiveAdmin
       protected
 
       def build_scope(scope, options)
-        li :class => classes_for_scope(scope) do
+        #li :class => classes_for_scope(scope) do
           scope_name = I18n.t("active_admin.scopes.#{scope.id}", :default => scope.name)
 
-          a :href => url_for(params.merge(:scope => scope.id, :page => 1)), :class => "table_tools_button btn btn-mini" do
+          a :href => url_for(params.merge(:scope => scope.id, :page => 1)), :class => classes_for_scope(scope) do
             text_node scope_name
             span :class => 'count' do
               "(#{get_scope_count(scope)})"
             end if options[:scope_count] && scope.show_count
           end
-        end
+        #end
       end
 
       def classes_for_scope(scope)
-        classes = ["scope", scope.id]
+        classes = ["scope btn btn-mini", scope.id]
         classes << "selected disabled" if current_scope?(scope)
         classes.join(" ")
       end
