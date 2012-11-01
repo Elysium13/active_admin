@@ -31,7 +31,7 @@ module ActiveAdmin
           #within @body do
             div :class => "container-fluid" do
               #build_header
-              build_title_bar
+              #build_title_bar
               build_page_content
               #build_footer
             end
