@@ -22,8 +22,8 @@ module ActiveAdmin
         # controller. Defaults to rendering the ActiveAdmin::Pages::Index::Table
         def main_content
           wrap_with_batch_action_form do
-            build_collection
             build_table_tools
+            build_collection
           end
         end
 
