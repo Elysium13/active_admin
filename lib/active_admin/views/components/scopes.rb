@@ -34,7 +34,7 @@ module ActiveAdmin
         li :class => classes_for_scope(scope) do
           scope_name = I18n.t("active_admin.scopes.#{scope.id}", :default => scope.name)
 
-          a :href => url_for(params.merge(:scope => scope.id, :page => 1)), :class => "table_tools_button" do
+          a :href => url_for(params.merge(:scope => scope.id, :page => 1)), :class => "table_tools_button btn btn-mini" do
             text_node scope_name
             span :class => 'count' do
               "(#{get_scope_count(scope)})"

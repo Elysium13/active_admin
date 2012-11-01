@@ -148,8 +148,7 @@ module ActiveAdmin
         # Adds links to View, Edit and Delete
         def default_actions(options = {})
           options = {
-            :name => "",
-            :class => "btn-group"
+            :name => ""
           }.merge(options)
           column options[:name] do |resource|
             links = ''.html_safe
@@ -159,9 +158,9 @@ module ActiveAdmin
             if controller.action_methods.include?('edit')
               links << link_to(I18n.t('active_admin.edit'), edit_resource_path(resource), :class => "member_link edit_link btn btn-mini")
             end
-            if controller.action_methods.include?('destroy')
-              links << link_to(I18n.t('active_admin.delete'), resource_path(resource), :method => :delete, :data => {:confirm => I18n.t('active_admin.delete_confirmation')}, :class => "member_link delete_link btn btn-mini btn-danger")
-            end
+            #if controller.action_methods.include?('destroy')
+            #  links << link_to(I18n.t('active_admin.delete'), resource_path(resource), :method => :delete, :data => {:confirm => I18n.t('active_admin.delete_confirmation')}, :class => "member_link delete_link btn btn-mini btn-danger")
+            #end
             links
           end
         end
