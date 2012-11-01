@@ -65,6 +65,9 @@ module ActiveAdmin
 
         def build_table_tools
           div :class => "table_tools" do
+            h1 :class => "title" do
+              title
+            end  
             build_batch_actions_selector
             build_scopes
           end
