@@ -31,7 +31,7 @@ module ActiveAdmin
           #within @body do
             div :class => "container-fluid" do
               #build_header
-              #build_title_bar
+              build_title_bar
               build_page_content
               #build_footer
             end
@@ -44,9 +44,18 @@ module ActiveAdmin
         end
 
         def build_title_bar
-          insert_tag view_factory.title_bar, title, action_items_for_action
+          p :class => "lead" do
+            title
+          end  
         end
 
+        def title
+          if config[:title].is_a? String
+            config[:title]
+          else
+            active_admin_config.plural_resource_label
+          end
+        end
 
         def build_page_content
           build_flash_messages
