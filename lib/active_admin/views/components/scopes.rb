@@ -13,7 +13,7 @@ module ActiveAdmin
 
 
       def default_class_name
-        "scopes table_tools_segmented_control"
+        "scopes table_tools_segmented_control btn-group"
       end
 
       def tag_name
@@ -45,7 +45,7 @@ module ActiveAdmin
 
       def classes_for_scope(scope)
         classes = ["scope", scope.id]
-        classes << "selected" if current_scope?(scope)
+        classes << "selected disabled" if current_scope?(scope)
         classes.join(" ")
       end
 
