@@ -44,17 +44,7 @@ module ActiveAdmin
         end
 
         def build_title_bar
-          p :class => "lead" do
-            title
-          end  
-        end
-
-        def title
-          if config[:title].is_a? String
-            config[:title]
-          else
-            active_admin_config.plural_resource_label
-          end
+          insert_tag view_factory.title_bar, title, action_items_for_action
         end
 
         def build_page_content
