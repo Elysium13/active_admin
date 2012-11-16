@@ -51,8 +51,7 @@ module ActiveAdmin
         button_options[:"data-toggle"] = "dropdown"
         button_options[:href] = "#"
 
-
-        button (name + '<span class="caret"></span>'.html_safe), button_options
+        button (name + '<span class="caret"></span>').html_safe, button_options
       end
 
       def build_menu(options)
