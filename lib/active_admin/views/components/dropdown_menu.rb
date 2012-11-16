@@ -47,12 +47,12 @@ module ActiveAdmin
 
       def build_button(name, button_options)
         button_options[:class] ||= ""
-        button_options[:class] << " dropdown_menu_button btn btn-mini"
+        button_options[:class] << " dropdown_menu_button btn btn-mini dropdown-toggle"
         button_options[:"data-toggle"] = "dropdown"
         button_options[:href] = "#"
 
 
-        a (name + '<span class="caret"></span>'.html_safe), button_options
+        button (name + '<span class="caret"></span>'.html_safe), button_options
       end
 
       def build_menu(options)
