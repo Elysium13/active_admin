@@ -52,7 +52,7 @@ module ActiveAdmin
         button_options[:href] = "#"
 
 
-        button (name + '<span class="caret"></span>'.html_safe), button_options
+        button (name + '<span class="caret"></span>'.html), button_options
       end
 
       def build_menu(options)
