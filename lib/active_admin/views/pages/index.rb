@@ -68,7 +68,7 @@ module ActiveAdmin
             h1 :class => "title" do
               title
             end
-            link_to "New", new_resource_path, :class => "btn btn-primary pull-right"
+            render_blank_slate
             build_batch_actions_selector
             build_scopes
           end
