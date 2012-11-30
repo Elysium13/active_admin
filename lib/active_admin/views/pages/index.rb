@@ -67,7 +67,8 @@ module ActiveAdmin
           div :class => "table_tools" do
             h1 :class => "title" do
               title
-            end  
+            end
+            link_to "New", new_resource_path, :class => "btn btn-primary pull-right"
             build_batch_actions_selector
             build_scopes
           end
