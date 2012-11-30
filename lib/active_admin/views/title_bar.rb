@@ -7,7 +7,7 @@ module ActiveAdmin
         @title = title
         @action_items = action_items
 
-        build_titlebar_left
+        #build_titlebar_left
         build_titlebar_right
       end
 
