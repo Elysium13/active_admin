@@ -51,7 +51,7 @@ en:
         other: "Successfully destroyed %{count} %{plural_model}"
       selection_toggle_explanation: "(Toggle Selection)"
       link: "Create one"
-      action_label: "%{title} Selected"
+      action_label: "%{title}"
       labels:
         destroy: "Delete"
     comments:
