@@ -4,16 +4,11 @@ describe "Comments" do
   let(:application){ ActiveAdmin::Application.new }
 
   describe ActiveAdmin::Comment do
-    subject { ActiveAdmin::Comment }
+    subject { ActiveAdmin::Comment.new }
 
     describe "Associations and Validations" do
-      before do
-        pending "This is not passing on Travis-CI. See Issue #1273."
-      end
-
       it { should belong_to :resource }
       it { should belong_to :author }
-
       it { should validate_presence_of :resource }
       it { should validate_presence_of :body }
       it { should validate_presence_of :namespace }
@@ -42,11 +37,11 @@ describe "Comments" do
         ActiveAdmin::Comment.find_for_resource_in_namespace(another_post, namespace_name).should == []
       end
     end
-    
+
     describe ".resource_id_cast" do
       let(:post) { Post.create!(:title => "Testing.") }
       let(:namespace_name) { "admin" }
-      
+
       it "should cast resource_id as string" do
         comment = ActiveAdmin::Comment.create! :resource => post,
                                                 :body => "Another Comment",
@@ -60,16 +55,16 @@ describe "Comments" do
         ActiveAdmin::Comment.resource_id_type.should eql :string
       end
     end
-    
+
     describe "Commenting on resource with string id" do
       let(:tag){ Tag.create!(:name => "cooltags") }
       let(:namespace_name){ "admin" }
-      
+
       it "should allow commenting" do
-        comment = ActiveAdmin::Comment.create! :resource => tag, 
-                                                :body => "Another Comment", 
+        comment = ActiveAdmin::Comment.create! :resource => tag,
+                                                :body => "Another Comment",
                                                 :namespace => namespace_name
-                                                
+
         ActiveAdmin::Comment.find_for_resource_in_namespace(tag, namespace_name).should == [comment]
       end
     end
@@ -90,18 +85,6 @@ describe "Comments" do
         ns.comments?.should be_false
       end
 
-      it "should have comments when the application allows comments and no local namespace config" do
-        application.allow_comments = true
-        ns = ActiveAdmin::Namespace.new(application, :admin)
-        ns.comments?.should be_true
-      end
-
-      it "should not have comments when the application does not allow commands and no local namespace config" do
-        application.allow_comments = false
-        ns = ActiveAdmin::Namespace.new(application, :admin)
-        ns.comments?.should be_false
-      end
-
     end
   end
 
@@ -113,9 +96,8 @@ describe "Comments" do
       resource.comments = true
       resource.comments.should be_true
     end
-
-    it "should not have comment if set to false by in allow_comments_in" do
-      ns = ActiveAdmin::Namespace.new(application, application.default_namespace)
+    it "should disable comments if set to false" do
+      ns = ActiveAdmin::Namespace.new(application, :admin)
       resource = ActiveAdmin::Resource.new(ns, Post)
       resource.comments = false
       resource.comments?.should be_false

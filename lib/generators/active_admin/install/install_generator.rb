@@ -27,7 +27,11 @@ module ActiveAdmin
       end
 
       def setup_routes
-        route "ActiveAdmin.routes(self)"
+        if ARGV.include? "--skip-users"
+          route "ActiveAdmin.routes(self)"
+        else # Ensure Active Admin routes occur after Devise routes so that Devise has higher priority
+          inject_into_file "config/routes.rb", "\n  ActiveAdmin.routes(self)", :after => /devise_for.*/
+        end
       end
 
       def create_assets
@@ -35,11 +39,7 @@ module ActiveAdmin
       end
 
       def create_migrations
-        Dir["#{self.class.source_root}/migrations/*.rb"].sort.each do |filepath|
-          name = File.basename(filepath)
-          migration_template "migrations/#{name}", "db/migrate/#{name.gsub(/^\d+_/,'')}"
-          sleep 1
-        end
+        migration_template 'migrations/create_active_admin_comments.rb', 'db/migrate/create_active_admin_comments.rb'
       end
     end
   end

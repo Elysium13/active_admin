@@ -21,7 +21,8 @@ module ActiveAdmin
     def self.controllers
       {
         :sessions => "active_admin/devise/sessions",
-        :passwords => "active_admin/devise/passwords"
+        :passwords => "active_admin/devise/passwords",
+        :unlocks => "active_admin/devise/unlocks"
       }
     end
 
@@ -34,12 +35,22 @@ module ActiveAdmin
 
       # Redirect to the default namespace on logout
       def root_path
-        (Rails.configuration.action_controller[:relative_url_root] || '') +
-        if ActiveAdmin.application.default_namespace
-          "/#{ActiveAdmin.application.default_namespace}"
-        else
-          "/"
-        end
+        namespace = ActiveAdmin.application.default_namespace.presence
+        root_path_method = [namespace, :root_path].compact.join('_')
+
+        url_helpers = Rails.application.routes.url_helpers
+
+        path = if url_helpers.respond_to? root_path_method
+                 url_helpers.send root_path_method
+               else
+                 # Guess a root_path when url_helpers not helpful
+                 "/#{namespace}"
+               end
+
+        # NOTE: `relative_url_root` is deprecated by rails.
+        #       Remove prefix here if it is removed completely.
+        prefix = Rails.configuration.action_controller[:relative_url_root] || ''
+        prefix + path
       end
     end
 
@@ -48,6 +59,10 @@ module ActiveAdmin
     end
 
     class PasswordsController < ::Devise::PasswordsController
+      include ::ActiveAdmin::Devise::Controller
+    end
+
+    class UnlocksController < ::Devise::UnlocksController
       include ::ActiveAdmin::Devise::Controller
     end
 

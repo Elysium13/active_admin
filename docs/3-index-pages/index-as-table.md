@@ -28,12 +28,11 @@ If the default title does not work for you, pass it as the first argument:
       column "My Custom Title", :title
     end
 
-Sometimes calling methods just isn't enough and you need to write some view
-specific code. For example, say we wanted a colum called Title which holds a
-link to the posts admin screen.
+Sometimes that just isn't enough and you need to write some view-specific code.
+For example, say we wanted a "Title" column that links to the posts admin screen.
 
-The column method accepts a block as an argument which will then be rendered
-within the context of the view for each of the objects in the collection.
+`column` accepts a block that will be rendered for each of the objects in the collection.
+The block is called once for each resource, which is passed as an argument to the block.
 
     index do
       column "Title" do |post|
@@ -41,21 +40,27 @@ within the context of the view for each of the objects in the collection.
       end
     end
 
-The block gets called once for each resource in the collection. The resource gets passed into
-the block as an argument.
-
-To setup links to View, Edit and Delete a resource, use the default_actions method:
+To setup links to View, Edit and Delete a resource, use the `actions` method:
 
     index do
       column :title
-      default_actions
+      actions
     end
 
-Alternatively, you can create a column with custom links:
+You can also append custom links to the default links:
 
     index do
       column :title
-      column "Actions" do |post|
+      actions do |post|
+        link_to "Preview", admin_preview_post_path(post), :class => "member_link"
+      end
+    end
+
+Or forego the default links entirely:
+
+    index do
+      column :title
+      actions :defaults => false do |post|
         link_to "View", admin_post_path(post)
       end
     end
@@ -79,6 +84,25 @@ You can turn off sorting on any column by passing false:
 
     index do
       column :title, :sortable => false
+    end
+
+## Associated Sorting
+
+You're normally able to sort columns alphabetically, but by default you
+can't sort by associated objects. Though with a few simple changes, you can.
+
+Assuming you're on the Books index page, and Book has_one Publisher:
+
+    controller do
+      def scoped_collection
+        resource_class.includes(:publisher) # prevents N+1 queries to your database
+      end
+    end
+
+Then it's simple to sort by any Publisher attribute from within the index table:
+
+    index do
+      column :publisher, sortable: 'publishers.name'
     end
 
 ## Showing and Hiding Columns

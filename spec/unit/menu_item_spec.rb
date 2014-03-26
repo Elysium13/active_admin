@@ -20,53 +20,71 @@ module ActiveAdmin
       item.priority.should == 10
     end
 
-    it "should have a display if block" do
-      block = lambda{ logged_in? }
-      item = MenuItem.new(:if => block )
-      item.display_if_block.should == block
+    context "conditional display" do
+      it "should store a Proc internally and evaluate it when requested" do
+        item = MenuItem.new
+        item.instance_variable_get(:@should_display).should be_a Proc
+        item.display?.should_not be_a Proc
+      end
+
+      it "should show the item by default" do
+        MenuItem.new.display?.should == true
+      end
+
+      it "should hide the item" do
+        MenuItem.new(:if => proc{false}).display?.should == false
+      end
     end
 
-    it "should have a default display if block always returning true" do
+    it "should default to an empty hash for html_options" do
       item = MenuItem.new
-      item.display_if_block.should be_instance_of(Proc)
-      item.display_if_block.call(self).should == true
+      item.html_options.should be_empty
     end
 
-    context "with no children" do
+    it "should accept an options hash for link_to" do
+      item = MenuItem.new :html_options => { :target => :blank }
+      item.html_options.should include(:target => :blank)
+    end
+
+    context "with no items" do
       it "should be empty" do
         item = MenuItem.new
-        item.children.should == []
+        item.items.should be_empty
       end
 
       it "should accept new children" do
-        item = MenuItem.new
-        item.add MenuItem.new(:label => "Dashboard")
-        item.children.first.should be_an_instance_of(MenuItem)
-        item.children.first.label.should == "Dashboard"
+        item = MenuItem.new :label => "Dashboard"
+        item.add            :label => "My Child Dashboard"
+        item.items.first.should be_a MenuItem
+        item.items.first.label.should == "My Child Dashboard"
       end
     end
 
     context "with many children" do
       let(:item) do
         i = MenuItem.new(:label => "Dashboard")
-        i.add MenuItem.new(:label => "Blog")
-        i.add MenuItem.new(:label => "Cars")
-        i.add MenuItem.new(:label => "Users", :priority => 1)
-        i.add MenuItem.new(:label => "Settings", :priority => 2)
-        i.add MenuItem.new(:label => "Analytics", :priority => 44)
+        i.add :label => "Blog"
+        i.add :label => "Cars"
+        i.add :label => "Users", :priority => 1
+        i.add :label => "Settings", :priority => 2
+        i.add :label => "Analytics", :priority => 44
         i
+      end
+
+      it "should contain 5 submenu items" do
+        item.items.count.should == 5
       end
 
       it "should give access to the menu item as an array" do
         item['Blog'].label.should == 'Blog'
       end
 
-      it "should sort items based on priority and name" do    
-        item.children[0].label.should == 'Users'
-        item.children[1].label.should == 'Settings'
-        item.children[2].label.should == 'Blog'
-        item.children[3].label.should == 'Cars'
-        item.children[4].label.should == 'Analytics'
+      it "should sort items based on priority and name" do
+        item.items[0].label.should == 'Users'
+        item.items[1].label.should == 'Settings'
+        item.items[2].label.should == 'Blog'
+        item.items[3].label.should == 'Cars'
+        item.items[4].label.should == 'Analytics'
       end
 
       it "children should hold a reference to their parent" do
@@ -79,13 +97,13 @@ module ActiveAdmin
 
       context "with no parent" do
         it "should return an empty array" do
-         item.ancestors.should == [] 
+         item.ancestors.should == []
         end
       end
 
       context "with one parent" do
-        let(:sub_item) do 
-          item.add MenuItem.new(:label => "Create New")
+        let(:sub_item) do
+          item.add :label => "Create New"
           item["Create New"]
         end
         it "should return an array with the parent" do
@@ -95,13 +113,11 @@ module ActiveAdmin
 
       context "with many parents" do
         before(:each) do
-          c1 = MenuItem.new(:label => "C1")
-          c2 = MenuItem.new(:label => "C2")
-          c3 = MenuItem.new(:label => "C3")
+          c1 = {:label => "C1"}
+          c2 = {:label => "C2"}
+          c3 = {:label => "C3"}
 
-          item.add(c1)
-          c1.add c2
-          c2.add c3
+          item.add(c1).add(c2).add(c3)
 
           item
         end
@@ -113,16 +129,14 @@ module ActiveAdmin
     end # accessing ancestory
 
 
-    describe ".generate_item_id" do
-
-      it "downcases the id" do
-        MenuItem.generate_item_id("Identifier").should == "identifier"
+    describe "#id" do
+      it "should be normalized" do
+        MenuItem.new(:id => "Foo Bar").id.should == "foo_bar"
       end
 
-      it "should set underscore any spaces" do
-        MenuItem.generate_item_id("An Id").should == "an_id"
+      it "should not accept Procs" do
+        expect{ MenuItem.new(:id => proc{"Dynamic"}).id }.to raise_error TypeError
       end
-
     end
 
   end

@@ -1,4 +1,4 @@
-require 'spec_helper_without_rails'
+require 'spec_helper'
 require 'active_admin/menu'
 require 'active_admin/menu_item'
 
@@ -7,7 +7,6 @@ include ActiveAdmin
 describe ActiveAdmin::Menu do
 
   context "with no items" do
-
     it "should have an empty item collection" do
       menu = Menu.new
       menu.items.should be_empty
@@ -15,18 +14,16 @@ describe ActiveAdmin::Menu do
 
     it "should accept new items" do
       menu = Menu.new
-      item = MenuItem.new
-      menu.add item
-      menu.items.first.should == item
+      menu.add :label => "Dashboard"
+      menu.items.first.label.should == "Dashboard"
     end
-
   end
 
-  context "with many item" do
+  context "with many items" do
     let(:menu) do
       Menu.new do |m|
-        m.add MenuItem.new(:label => "Dashboard")
-        m.add MenuItem.new(:label => "Blog")
+        m.add :label => "Dashboard"
+        m.add :label => "Blog"
       end
     end
 
@@ -35,33 +32,40 @@ describe ActiveAdmin::Menu do
     end
   end
 
-  describe Menu::ItemCollection do
+  describe "adding items with children" do
+    it "should add an empty item if the parent does not exist" do
+      menu = Menu.new
+      menu.add :parent => "Admin", :label => "Users"
 
-    let(:collection) { Menu::ItemCollection.new }
-
-    it "should initialize" do
-      collection.should be_empty
+      menu["Admin"]["Users"].should be_an_instance_of(ActiveAdmin::MenuItem)
     end
 
-    describe "#find_by_id" do
-      let(:menu_item) { MenuItem.new(:id => "an_id") }
+    it "should add a child to a parent if it exists" do
+      menu = Menu.new
+      menu.add :parent => "Admin", :label => "Users"
+      menu.add :parent => "Admin", :label => "Projects"
 
-      before do
-        collection.push menu_item
-      end
-
-      it "retrieve an item id" do
-        MenuItem.should_receive(:generate_item_id).with("an_id").and_return("an_id")
-        collection.find_by_id("an_id").should == menu_item
-      end
-
-      it "returns nil when no matching ids" do
-        collection.find_by_id("not matching").should == nil
-      end
-
+      menu["Admin"]["Projects"].should be_an_instance_of(ActiveAdmin::MenuItem)
     end
 
+    it "should assign children regardless of resource file load order" do
+      menu = Menu.new
+      menu.add :parent => "Users", :label => "Posts"
+      menu.add :label  => "Users", :url   => "/some/url"
+
+      menu["Users"].url.should == "/some/url"
+      menu["Users"]["Posts"].should be_a ActiveAdmin::MenuItem
+    end
   end
 
-end
+  describe "sorting items" do
+    it "should sort children by the result of their label proc" do
+      menu = Menu.new
+      menu.add :label => proc{ "G" }, :id => "not related 1"
+      menu.add :label => proc{ "B" }, :id => "not related 2"
+      menu.add :label => proc{ "A" }, :id => "not related 3"
 
+      menu.items.map(&:label).should == %w[A B G]
+    end
+  end
+end

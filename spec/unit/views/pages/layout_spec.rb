@@ -3,11 +3,11 @@ require 'spec_helper'
 describe ActiveAdmin::Views::Pages::Layout do
 
   let(:assigns){ {} }
-  let(:helpers) do 
+  let(:helpers) do
     helpers = mock_action_view
 
     helpers.stub :active_admin_application => active_admin_application,
-                 :active_admin_config => mock('Config', :action_items? => nil, :sidebar_sections? => nil),
+                 :active_admin_config => mock('Config', :action_items? => nil, :breadcrumb => nil, :sidebar_sections? => nil),
                  :active_admin_namespace => active_admin_namespace,
                  :breadcrumb_links => [],
                  :content_for => "",

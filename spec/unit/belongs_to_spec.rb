@@ -1,10 +1,10 @@
-require 'spec_helper' 
+require 'spec_helper'
 
 describe ActiveAdmin::Resource::BelongsTo do
 
 
   let(:application){ ActiveAdmin::Application.new }
-  let(:namespace){ Namespace.new(application, :admin) }
+  let(:namespace){ ActiveAdmin::Namespace.new(application, :admin) }
   let(:post){ namespace.register(Post) }
   let(:belongs_to){ ActiveAdmin::Resource::BelongsTo.new(post, :user) }
 

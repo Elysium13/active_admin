@@ -1,6 +1,5 @@
 module ActiveAdmin
   class Router
-
     def initialize(application)
       @application = application
     end
@@ -14,101 +13,94 @@ module ActiveAdmin
     #   end
     #
     def apply(router)
-      # Define any necessary dashboard routes and root
-      router.instance_exec(@application.namespaces.values) do |namespaces|
-        namespaces.each do |namespace|
-          root_and_dashboard_routes = Proc.new do
-            root :to => (namespace.root_to || "dashboard#index")
-            if ActiveAdmin::Dashboards.built?
-              match '/dashboard' => 'dashboard#index', :as => 'dashboard'
-            end
-          end
+      define_root_routes router
+      define_resource_routes router
+    end
 
+    def define_root_routes(router)
+      router.instance_exec @application.namespaces.values do |namespaces|
+        namespaces.each do |namespace|
           if namespace.root?
-            instance_eval &root_and_dashboard_routes
+            root :to => namespace.root_to
           else
-            namespace(namespace.name) do
-              instance_eval &root_and_dashboard_routes
+            namespace namespace.name do
+              root :to => namespace.root_to
             end
           end
         end
       end
+    end
 
-      # Now define the routes for each resource
-      router.instance_exec(@application.namespaces) do |namespaces|
-        resources = namespaces.values.collect{|n| n.resources.resources }.flatten
+    # Defines the routes for each resource
+    def define_resource_routes(router)
+      router.instance_exec @application.namespaces, self do |namespaces, aa_router|
+        resources = namespaces.values.map{ |n| n.resources.values }.flatten
         resources.each do |config|
-
-          # Define the block the will get eval'd within the namespace
-          route_definition_block = Proc.new do
-            case config
-            when Resource
-              resources config.resource_name.route_key, :only => config.defined_actions do
-                # Define any member actions
-                member do
-                  config.member_actions.each do |action|
-                    # eg: get :comment
-                    send(action.http_verb, action.name)
-                  end
-                end
-
-                # Define any collection actions
-                collection do
-                  config.collection_actions.each do |action|
-                    send(action.http_verb, action.name)
-                  end
-
-                  post :batch_action
-                end
-              end
-            when Page
-
-              match "/#{config.underscored_resource_name}" => "#{config.underscored_resource_name}#index"
-              config.page_actions.each do |action|
-                match "/#{config.underscored_resource_name}/#{action.name}" => "#{config.underscored_resource_name}##{action.name}", :via => action.http_verb
-              end
-            else
-              raise "Unsupported config class: #{config.class}"
-            end
-          end
+          routes = aa_router.resource_routes(config)
 
           # Add in the parent if it exists
           if config.belongs_to?
-            routes_for_belongs_to = route_definition_block.dup
-            route_definition_block = Proc.new do
-              # If its optional, make the normal resource routes
-              instance_eval &routes_for_belongs_to if config.belongs_to_config.optional?
+            belongs_to = routes
+            routes     = Proc.new do
+              # If it's optional, make the normal resource routes
+              instance_exec &belongs_to if config.belongs_to_config.optional?
 
               # Make the nested belongs_to routes
               # :only is set to nothing so that we don't clobber any existing routes on the resource
               resources config.belongs_to_config.target.resource_name.plural, :only => [] do
-                instance_eval &routes_for_belongs_to
-              end
-
-              # Batch action path is not nested.
-              if config.is_a?(Resource)
-                resources config.resource_name.route_key, :only => config.defined_actions do
-                  collection do
-                    post :batch_action
-                  end
-                end
+                instance_exec &belongs_to
               end
             end
           end
 
           # Add on the namespace if required
           unless config.namespace.root?
-            routes_in_namespace = route_definition_block.dup
-            route_definition_block = Proc.new do
+            nested = routes
+            routes = Proc.new do
               namespace config.namespace.name do
-                instance_eval(&routes_in_namespace)
+                instance_exec &nested
               end
             end
           end
 
-          instance_eval &route_definition_block
+          instance_exec &routes
         end
       end
+    end
+
+    def resource_routes(config)
+      Proc.new do
+        # Builds one route for each HTTP verb passed in
+        build_route  = proc{ |verbs, *args|
+          [*verbs].each{ |verb| send verb, *args }
+        }
+        # Deals with +ControllerAction+ instances
+        build_action = proc{ |action|
+          build_route.call(action.http_verb, action.name)
+        }
+        case config
+        when ::ActiveAdmin::Resource
+          resources config.resource_name.route_key, :only => config.defined_actions do
+            member do
+              config.member_actions.each &build_action
+            end
+
+            collection do
+              config.collection_actions.each &build_action
+              post :batch_action
+            end
+          end
+        when ::ActiveAdmin::Page
+          page = config.underscored_resource_name
+          get "/#{page}" => "#{page}#index"
+          config.page_actions.each do |action|
+            build_route.call action.http_verb, "/#{page}/#{action.name}" => "#{page}##{action.name}"
+          end
+        else
+          raise "Unsupported config class: #{config.class}"
+        end
+      end
+
     end
   end
 end

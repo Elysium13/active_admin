@@ -1,4 +1,4 @@
-require File.expand_path("../spec_helper_without_rails", __FILE__)
+require 'spec_helper_without_rails'
 
 module ActiveAdminIntegrationSpecHelper
   extend self
@@ -37,13 +37,13 @@ module ActiveAdminIntegrationSpecHelper
     reload_routes!
   end
 
-  # Sets up a describe block where you can render controller 
+  # Sets up a describe block where you can render controller
   # actions. Uses the Admin::PostsController as the subject
   # for the describe block
   def describe_with_render(*args, &block)
     describe *args do
       include RSpec::Rails::ControllerExampleGroup
-      render_views  
+      render_views
       # metadata[:behaviour][:describes] = ActiveAdmin.namespaces[:admin].resources['Post'].controller
       module_eval &block
     end
@@ -73,7 +73,7 @@ module ActiveAdminIntegrationSpecHelper
     ActionView::Base.send :include, ActiveAdmin::ViewHelpers
     ActionView::Base.send :include, Rails.application.routes.url_helpers
     ActionView::Base.new(ActionController::Base.view_paths, assigns, controller)
-  end  
+  end
   alias_method :action_view, :mock_action_view
 
   # A mock resource to register
@@ -116,6 +116,8 @@ ENV["RAILS_ASSET_ID"] = ''
 RSpec.configure do |config|
   config.use_transactional_fixtures = true
   config.use_instantiated_fixtures = false
+  config.include Devise::TestHelpers, :type => :controller
+  config.render_views = false
 end
 
 # All RSpec configuration needs to happen before any examples
@@ -123,6 +125,7 @@ end
 require 'integration_example_group'
 RSpec.configure do |c|
   c.include RSpec::Rails::IntegrationExampleGroup, :example_group => { :file_path => /\bspec\/integration\// }
+  c.include Devise::TestHelpers, :type => :controller
 end
 
 # Ensure this is defined for Ruby 1.8
@@ -133,11 +136,11 @@ RSpec::Matchers.define :have_tag do |*args|
   match_unless_raises Test::Unit::AssertionFailedError do |response|
     tag = args.shift
     content = args.first.is_a?(Hash) ? nil : args.shift
-    
+
     options = {
       :tag => tag.to_s
     }.merge(args[0] || {})
-    
+
     options[:content] = content if content
 
     begin
@@ -160,3 +163,13 @@ end
 # improve the performance of the specs suite by not logging anything
 # see http://blog.plataformatec.com.br/2011/12/three-tips-to-improve-the-performance-of-your-test-suite/
 Rails.logger.level = 4
+
+
+# Improves performance by forcing the garbage collector to run less often.
+unless ENV['DEFER_GC'] == '0' || ENV['DEFER_GC'] == 'false'
+  require 'support/deferred_garbage_collection'
+  RSpec.configure do |config|
+    config.before(:all) { DeferredGarbageCollection.start }
+    config.after(:all)  { DeferredGarbageCollection.reconsider }
+  end
+end

@@ -86,3 +86,44 @@ directory in the initializer file:
     ActiveAdmin.setup do |config|
       config.load_paths = [File.join(Rails.root, "app", "ui")]
     end
+
+## Comments
+
+By default Active Admin includes comments on resources. Sometimes, this is
+undesired. To disable comments for the entire application:
+
+    ActiveAdmin.setup do |config|
+
+      config.allow_comments = false
+
+    end
+
+If you would like to enable / disable comments for just a namespace, do the
+following:
+
+    ActiveAdmin.setup do |config|
+
+      config.namespace :admin do |admin|
+        admin.allow_comments = false
+      end
+
+    end
+
+You can also disable comments for a specific resource:
+
+    ActiveAdmin.register Post do
+      config.comments = false
+    end
+
+## Utility Navigation
+
+The "utility navigation" shown at the top right when logged in by default shows the current user email address and a link to "Log Out".  However, the utility navigation is just like any other menu in the system, so you can provide your own menu to be rendered in place if you like.
+
+    ActiveAdmin.setup do |config|
+      config.namespace :admin do |admin|
+        admin.build_menu :utility_navigation do |menu|
+          menu.add label: "ActiveAdmin.info", url: "http://www.activeadmin.info", html_options: { target: :blank }
+          admin.add_logout_button_to_menu menu # can also pass priority & html_options for link_to to use
+        end
+      end
+    end

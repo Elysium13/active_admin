@@ -22,9 +22,9 @@ module ActiveAdmin
         build_menu
       end
 
-      # Returns the first level menu items to display
+      # The top-level menu items that should be displayed.
       def menu_items
-        displayable_items(menu.items)
+        menu.items(self)
       end
 
       def tag_name
@@ -40,35 +40,16 @@ module ActiveAdmin
       end
 
       def build_menu_item(item)
-        li :id => item.dom_id do |li_element|
-          li_element.add_class "current" if current?(item)
-          link_path = url_for_menu_item(item)
+        li :id => item.id do |li|
+          li.add_class "current" if item.current? assigns[:current_tab]
 
-          if item.children.any?
-            li_element.add_class "has_nested"
-            text_node link_to(item.label, link_path)
-            render_nested_menu(item)
-          else
-            link_to item.label, link_path
-          end
-        end
-      end
+          text_node link_to item.label(self), item.url(self), item.html_options
 
-      def url_for_menu_item(menu_item)
-        case menu_item.url
-        when Symbol
-          send(menu_item.url)
-        when nil
-          "#"
-        else
-          menu_item.url
-        end
-      end
-
-      def render_nested_menu(item)
-        ul do
-          displayable_items(item.children).each do |child|
-            build_menu_item child
+          if children = item.items(self).presence
+            li.add_class "has_nested"
+            ul do
+              children.each{ |child| build_menu_item child }
+            end
           end
         end
       end
@@ -76,31 +57,6 @@ module ActiveAdmin
       def default_options
         { :id => "tabs" }
       end
-
-      # Returns true if the menu item name is @current_tab (set in controller)
-      def current?(menu_item)
-        assigns[:current_tab] == menu_item || menu_item.children.include?(assigns[:current_tab])
-      end
-
-      # Returns an Array of items to display
-      def displayable_items(items)
-        items.select do |item|
-          display_item? item
-        end
-      end
-
-      # Returns true if the item should be displayed
-      def display_item?(item)
-        return false unless call_method_or_proc_on(self, item.display_if_block)
-        return false if (!item.url || item.url == "#") && !displayable_children?(item)
-        true
-      end
-
-      # Returns true if the item has any children that should be displayed
-      def displayable_children?(item)
-        !item.children.find{|child| display_item?(child) }.nil?
-      end
     end
-
   end
 end

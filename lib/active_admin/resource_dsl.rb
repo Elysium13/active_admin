@@ -7,36 +7,9 @@ module ActiveAdmin
       config.belongs_to(target, options)
     end
 
-    # Scope this controller to some object which has a relation
-    # to the resource. Can either accept a block or a symbol 
-    # of a method to call.
-    #
-    # Eg:
-    #
-    #   ActiveAdmin.register Post do
-    #     scope_to :current_user
-    #   end
-    #
-    # Then every time we instantiate and object, it would call
-    #   
-    #   current_user.posts.build
-    #
-    # By default Active Admin will use the resource name to build a
-    # method to call as the association. If its different, you can 
-    # pass in the association_method as an option.
-    #
-    #   scope_to :current_user, :association_method => :blog_posts
-    #
-    # will result in the following
-    # 
-    #   current_user.blog_posts.build
-    #
+    # Scope collection to a relation
     def scope_to(*args, &block)
-      options = args.extract_options!
-      method = args.first
-
-      config.scope_to = block_given? ? block : method
-      config.scope_to_association_method = options[:association_method]
+      config.scope_to(*args, &block)
     end
 
     # Create a scope
@@ -68,7 +41,7 @@ module ActiveAdmin
     #     column("Author") { |post| post.author.full_name }
     #   end
     #
-    #   csv :separator => ";" do
+    #   csv :col_sep => ";", :force_quotes => true do
     #     column :name
     #   end
     #
@@ -94,9 +67,9 @@ module ActiveAdmin
     #
     # You can treat everything within the block as a standard Rails controller
     # action.
-    # 
-    def member_action(name, options = {}, &block)
-      config.member_actions << ControllerAction.new(name, options)
+    #
+    def action(set, name, options = {}, &block)
+      set << ControllerAction.new(name, options)
       title = options.delete(:title)
 
       controller do
@@ -105,14 +78,12 @@ module ActiveAdmin
       end
     end
 
-    def collection_action(name, options = {}, &block)
-      config.collection_actions << ControllerAction.new(name, options)
-      title = options.delete(:title)
+    def member_action(name, options = {}, &block)
+      action config.member_actions, name, options, &block
+    end
 
-      controller do
-        before_filter(:only => [name]){ @page_title = title } if title
-        define_method(name, &block || Proc.new{})
-      end
+    def collection_action(name, options = {}, &block)
+      action config.collection_actions, name, options, &block
     end
 
     # Defined Callbacks
@@ -146,12 +117,12 @@ module ActiveAdmin
     delegate :before_destroy, :after_destroy, :to => :controller
 
     # Standard rails filters
-    delegate :before_filter, :skip_before_filter, :after_filter, :around_filter, :to => :controller
+    delegate :before_filter, :skip_before_filter, :after_filter, :around_filter, :skip_filter, :to => :controller
 
     # Specify which actions to create in the controller
     #
     # Eg:
-    #   
+    #
     #   ActiveAdmin.register Post do
     #     actions :index, :show
     #   end

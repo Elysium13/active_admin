@@ -1,4 +1,5 @@
 require 'active_admin/helpers/collection'
+require 'active_admin/view_helpers/method_or_proc_helper'
 
 module ActiveAdmin
   module Views
@@ -21,10 +22,8 @@ module ActiveAdmin
       end
 
       def build(scopes, options = {})
-        unless current_filter_search_empty?
-          scopes.each do |scope|
-            build_scope(scope, options) if call_method_or_proc_on(self, scope.display_if_block)
-          end
+        scopes.each do |scope|
+          build_scope(scope, options) if call_method_or_proc_on(self, scope.display_if_block)
         end
       end
 
@@ -53,12 +52,8 @@ module ActiveAdmin
         if params[:scope]
           params[:scope] == scope.id
         else
-          active_admin_config.default_scope == scope
+          active_admin_config.default_scope(self) == scope
         end
-      end
-
-      def current_filter_search_empty?
-        params.include?(:q) && collection_is_empty?
       end
 
       # Return the count for the scope passed in.

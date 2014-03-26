@@ -18,6 +18,9 @@ module ActiveAdmin
     # An array of custom actions defined for this page
     attr_reader :page_actions
 
+    # Set breadcrumb builder
+    attr_accessor :breadcrumb
+
     module Base
       def initialize(namespace, name, options)
         @namespace = namespace
@@ -34,6 +37,7 @@ module ActiveAdmin
     include Resource::ActionItems
     include Resource::Menu
     include Resource::Naming
+    include Resource::Routes
 
     # label is singular
     def plural_resource_label
@@ -60,6 +64,11 @@ module ActiveAdmin
       [namespace.module_name, camelized_resource_name + "Controller"].compact.join('::')
     end
 
+    # Override from `ActiveAdmin::Resource::Controllers`
+    def route_uncountable?
+      false
+    end
+
     def belongs_to?
       false
     end
@@ -69,7 +78,7 @@ module ActiveAdmin
 
     def add_default_sidebar_sections
     end
-    
+
     # Clears all the custom actions this page knows about
     def clear_page_actions!
       @page_actions = []

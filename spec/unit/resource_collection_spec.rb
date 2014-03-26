@@ -1,30 +1,38 @@
 require 'spec_helper'
 require 'active_admin/resource_collection'
 
-include ActiveAdmin
-
 describe ActiveAdmin::ResourceCollection do
+  let(:application) { ActiveAdmin::Application.new }
+  let(:namespace)   { ActiveAdmin::Namespace.new application, :admin }
+  let(:collection)  { ActiveAdmin::ResourceCollection.new }
 
-  let(:collection){ ResourceCollection.new }
+  it { should respond_to :[]       }
+  it { should respond_to :add      }
+  it { should respond_to :each     }
+  it { should respond_to :has_key? }
+  it { should respond_to :keys     }
+  it { should respond_to :values   }
+  it { should respond_to :size     }
+  it { should respond_to :to_a     }
 
   it "should have no resources when new" do
-    collection.resources.should == []
+    collection.should be_empty
   end
 
   it "should be enumerable" do
-    resource = mock(:resource_name => "MyResource")
+    resource = mock :resource_name => "MyResource"
     collection.add(resource)
-    collection.each{|r| r.should == resource }
+    collection.each{ |r| r.should == resource }
   end
 
   it "should return the available keys" do
-    resource = mock(:resource_name => "MyResource")
+    resource = mock :resource_name => "MyResource"
     collection.add resource
     collection.keys.should == [resource.resource_name]
   end
 
-  describe "adding a new resource" do
-    let(:resource){ mock(:resource_name => "MyResource") }
+  describe "#add" do
+    let(:resource){ mock :resource_name => "MyResource" }
 
     it "should return the resource" do
       collection.add(resource).should == resource
@@ -32,70 +40,126 @@ describe ActiveAdmin::ResourceCollection do
 
     it "should add a new resource" do
       collection.add(resource)
-      collection.resources.should == [resource]
+      collection.values.should == [resource]
     end
 
     it "should be available by name" do
       collection.add(resource)
-      collection.find_by_key(resource.resource_name).should == resource
+      collection[resource.resource_name].should == resource
     end
   end
 
   describe "adding a new resource when the key already exists" do
-    let(:stored_resource){ mock(:resource_name => "MyResource") }
-    let(:resource){ mock(:resource_name => "MyResource") }
-
-    before do
-      collection.add(stored_resource)
-    end
-
-    it "should return the original resource" do
-      collection.add(resource).should == stored_resource
-    end
+    let(:resource){ mock :resource_name => "MyResource" }
 
     it "should not add a new resource" do
-      collection.add(resource)
-      collection.resources.should == [stored_resource]
+      collection.add(resource); collection.add(resource)
+      collection.values.should == [resource]
+    end
+
+    it "shouldn't allow a resource name mismatch to occur" do
+      expect {
+        ActiveAdmin.register Category
+        ActiveAdmin.register Post, as: "Category"
+      }.to raise_error ActiveAdmin::ResourceCollection::ConfigMismatch
+    end
+
+    it "shouldn't allow a Page/Resource mismatch to occur" do
+      expect {
+        ActiveAdmin.register User
+        ActiveAdmin.register_page 'User'
+      }.to raise_error ActiveAdmin::ResourceCollection::IncorrectClass
+    end
+
+    describe "should store both renamed and non-renamed resources" do
+      let(:resource) { ActiveAdmin::Resource.new namespace, Category }
+      let(:renamed)  { ActiveAdmin::Resource.new namespace, Category, as: "Subcategory" }
+
+      it "when the renamed version is added first" do
+        collection.add renamed
+        collection.add resource
+        collection.values.should include(resource, renamed)
+      end
+
+      it "when the renamed version is added last" do
+        collection.add resource
+        collection.add renamed
+        collection.values.should include(resource, renamed)
+      end
     end
   end
 
-  describe "adding an existing resource key with a different resource class" do
-    let(:stored_resource){ mock(:resource_name => "MyResource", :resource_class => mock) }
-    let(:resource){ mock(:resource_name => "MyResource", :resource_class => mock) }
+  describe "#[]" do
+    let(:resource)              { ActiveAdmin::Resource.new namespace, resource_class }
+    let(:inherited_resource)    { ActiveAdmin::Resource.new namespace, inherited_resource_class }
 
-    it "should raise a ActiveAdmin::ResourceMismatchError" do
-      collection.add(stored_resource)
-      lambda {
-        collection.add(resource)
-      }.should raise_error(ActiveAdmin::ResourceMismatchError)
+    let(:resource_class)           { User }
+    let(:inherited_resource_class) { Publisher }
+    let(:unregistered_class)       { Category }
+
+    context "with resources" do
+      before do
+        collection.add resource
+        collection.add inherited_resource
+      end
+
+      it "should find resource by class" do
+        collection[resource_class].should == resource
+      end
+
+      it "should find resource by class string" do
+        collection[resource_class.to_s].should == resource
+      end
+
+      it "should find inherited resource by class" do
+        collection[inherited_resource_class].should == inherited_resource
+      end
+
+      it "should find inherited resource by class string" do
+        collection[inherited_resource_class.to_s].should == inherited_resource
+      end
+
+      it "should return nil when the resource_class does not respond to base_class and it is not in the collection" do
+        collection[mock].should == nil
+      end
+
+      it "should return nil when a resource class is NOT in the collection" do
+        collection[unregistered_class].should == nil
+      end
     end
 
+    context "without inherited resources" do
+      before do
+        collection.add resource
+      end
+
+      it "should find resource by inherited class" do
+        collection[inherited_resource_class].should == resource
+      end
+    end
+
+    context "with a renamed resource" do
+      let(:renamed_resource) { ActiveAdmin::Resource.new namespace, resource_class, as: name }
+      let(:name)             { "Administrators" }
+
+      before do
+        collection.add renamed_resource
+      end
+
+      it "should find resource by class" do
+        collection[resource_class].should == renamed_resource
+      end
+
+      it "should find resource by class string" do
+        collection[resource_class.to_s].should == renamed_resource
+      end
+
+      it "should find resource by name" do
+        collection[name].should == renamed_resource
+      end
+    end
   end
 
-  describe "#find_by_resource_class" do
-
-    let(:base_class){ mock(:to_s => "BaseClass")}
-    let(:resource_from_base_class){ mock(:resource_name => "MyBaseClassResource", :resource_class => base_class )}
-    let(:resource_class){ mock(:base_class => base_class, :to_s => "ResourceClass") }
-    let(:resource){ mock(:resource_name => "MyResource", :resource_class => resource_class) }
-
-    it "should find a resource when it's in the collection" do
-      collection.add resource
-      collection.find_by_resource_class(resource_class).should == resource
-    end
-
-    it "should return nil when the resource class is not in the collection" do
-      collection.find_by_resource_class(resource_class).should == nil
-    end
-
-    it "should return the resource when it and it's base class is in the collection" do
-      collection.add resource_from_base_class
-      collection.find_by_resource_class(resource_class).should == resource_from_base_class
-    end
-
-    it "should return nil the resource_class does not repond to base_class and it's not in the collection" do
-      collection.find_by_resource_class(mock).should == nil
-    end
-  end
+  pending "specs for subclasses of Page and Resource"
 
 end

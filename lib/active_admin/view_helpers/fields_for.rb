@@ -36,6 +36,10 @@ module ActiveAdmin
             v.map do |v|
               { "#{k}[]" => v }
             end
+          when nil
+          	{ k => '' }
+          when TrueClass,FalseClass
+            { k => v }
           else
             raise "I don't know what to do with #{v.class} params: #{v.inspect}"
           end

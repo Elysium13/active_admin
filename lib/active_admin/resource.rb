@@ -3,8 +3,10 @@ require 'active_admin/resource/controllers'
 require 'active_admin/resource/menu'
 require 'active_admin/resource/page_presenters'
 require 'active_admin/resource/pagination'
+require 'active_admin/resource/routes'
 require 'active_admin/resource/naming'
 require 'active_admin/resource/scopes'
+require 'active_admin/resource/scope_to'
 require 'active_admin/resource/sidebars'
 require 'active_admin/resource/belongs_to'
 
@@ -38,14 +40,11 @@ module ActiveAdmin
     # The default sort order to use in the controller
     attr_accessor :sort_order
 
-    # Scope this resource to an association in the controller
-    attr_accessor :scope_to
-
-    # If we're scoping resources, use this method on the parent to return the collection
-    attr_accessor :scope_to_association_method
-
     # Set the configuration for the CSV
     attr_writer :csv_builder
+
+    # Set breadcrumb builder
+    attr_accessor :breadcrumb
 
     # Store a reference to the DSL so that we can dereference it during garbage collection.
     attr_accessor :dsl
@@ -64,15 +63,21 @@ module ActiveAdmin
       end
     end
 
+    include MethodOrProcHelper
+
     include Base
+    include ActionItems
+    include Authorization
     include Controllers
+    include Menu
+    include Naming
     include PagePresenters
     include Pagination
-    include ActionItems
-    include Naming
     include Scopes
+    include ScopeTo
     include Sidebars
     include Menu
+    include Routes
 
     # The class this resource wraps. If you register the Post model, Resource#resource_class
     # will point to the Post class
@@ -88,27 +93,12 @@ module ActiveAdmin
       resource_class.quoted_table_name
     end
 
+    def resource_column_names
+      resource_class.column_names
+    end
+
     def resource_quoted_column_name(column)
       resource_class.connection.quote_column_name(column)
-    end
-
-    # Returns the named route for an instance of this resource
-    def route_instance_path
-      [route_prefix, controller.resources_configuration[:self][:route_instance_name], 'path'].compact.join('_').to_sym
-    end
-
-    # Returns a symbol for the route to use to get to the
-    # collection of this resource
-    def route_collection_path
-      route = super
-
-      # Handle plural resources.
-      if controller.resources_configuration[:self][:route_collection_name] ==
-            controller.resources_configuration[:self][:route_instance_name]
-        route = route.to_s.gsub('_path', '_index_path').to_sym
-      end
-
-      route
     end
 
     # Clears all the member actions this resource knows about
@@ -122,35 +112,32 @@ module ActiveAdmin
 
     # Return only defined resource actions
     def defined_actions
-      controller.instance_methods.map { |m| m.to_sym } & ResourceController::ACTIVE_ADMIN_ACTIONS
-    end
-
-    # Are admin notes turned on for this resource
-    def admin_notes?
-      admin_notes.nil? ? ActiveAdmin.admin_notes : admin_notes
+      controller.instance_methods.map(&:to_sym) & ResourceController::ACTIVE_ADMIN_ACTIONS
     end
 
     def belongs_to(target, options = {})
       @belongs_to = Resource::BelongsTo.new(self, target, options)
-      controller.belongs_to(target, options.dup)
+      self.navigation_menu_name = target unless @belongs_to.optional?
+      controller.send :belongs_to, target, options.dup
     end
 
     def belongs_to_config
       @belongs_to
     end
 
-    # Do we belong to another resource
+    # Do we belong to another resource?
     def belongs_to?
-      !belongs_to_config.nil?
-    end
-
-    def include_in_menu?
-      super && !(belongs_to? && !belongs_to_config.optional?)
+      !!belongs_to_config
     end
 
     # The csv builder for this resource
     def csv_builder
       @csv_builder || default_csv_builder
+    end
+
+    def find_resource(id)
+      resource = resource_class.where(resource_class.primary_key => id).first
+      decorator_class ? decorator_class.new(resource) : resource
     end
 
     # @deprecated
@@ -164,7 +151,7 @@ module ActiveAdmin
 
     def default_options
       {
-        :sort_order => "#{resource_class.respond_to?(:primary_key) ? resource_class.primary_key : 'id'}_desc"
+        :sort_order => (resource_class.respond_to?(:primary_key) ? resource_class.primary_key.to_s : 'id') + '_desc'
       }
     end
 

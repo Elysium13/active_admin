@@ -1,49 +1,64 @@
 module ActiveAdmin
   class Resource
+
     module Menu
 
-      # Set the menu options. To not add this resource to the menu, just
-      # call #menu(false)
-      def menu(options = {})
+      # Set the menu options.
+      # To disable this menu item, call `menu(false)` from the DSL
+      def menu_item_options=(options)
         if options == false
-          @display_menu = false
+          @include_in_menu   = false
+          @menu_item_options = {}
         else
-          options = default_menu_options.merge(options)
-          @parent_menu_item = value_or_proc(options.delete(:parent))
-          @menu_item = MenuItem.new(default_menu_options.merge(options))
+          @navigation_menu_name = options[:menu_name]
+          @menu_item_options    = default_menu_options.merge options
         end
       end
 
-      def menu_item
-        @menu_item ||= MenuItem.new(default_menu_options)
+      def menu_item_options
+        @menu_item_options ||= default_menu_options
       end
 
-      def parent_menu_item_name
-        return nil unless @parent_menu_item
-        ActiveAdmin::Resource::Name.new(nil, @parent_menu_item)
-      end
-
-      # The default menu options to pass through to MenuItem.new
       def default_menu_options
+        # These local variables are accessible to the procs.
+        menu_resource_class = respond_to?(:resource_class) ? resource_class : self
+        resource = self
         {
-          :id => resource_name.plural,
-          :label => proc{ plural_resource_label },
-          :url => route_collection_path
+          :id    => resource_name.plural,
+          :label => proc{ resource.plural_resource_label },
+          :url   => proc{ resource.route_collection_path(params) },
+          :if    => proc{ authorized?(:read, menu_resource_class) }
         }
       end
 
+      attr_writer :navigation_menu_name
+
+      def navigation_menu_name
+        case @navigation_menu_name ||= DEFAULT_MENU
+        when Proc
+          controller.instance_eval(&@navigation_menu_name).to_sym
+        else
+          @navigation_menu_name
+        end
+      end
+
+      def navigation_menu
+        namespace.fetch_menu(navigation_menu_name)
+      end
+
+      def add_to_menu(menu_collection)
+        if include_in_menu?
+          @menu_item = menu_collection.add navigation_menu_name, menu_item_options
+        end
+      end
+
+      attr_reader :menu_item
+
       # Should this resource be added to the menu system?
       def include_in_menu?
-        @display_menu != false
+        @include_in_menu != false
       end
 
-      private
-
-      # Evaluates value if this is proc or return value if else
-      def value_or_proc(value)
-        return value.call if value.is_a? Proc
-        value
-      end
     end
   end
 end

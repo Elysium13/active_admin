@@ -46,8 +46,16 @@ describe ActiveAdmin::Views::AttributesTable do
             row("Body") { post.body }
           end
         }
-      }
-
+      },
+      "when you create each row with a custom block that returns nil" => proc {
+        render_arbre_component(assigns) {
+          attributes_table_for post do
+            row("Id")   { text_node post.id; nil }
+            row("Title"){ text_node post.title; nil }
+            row("Body") { text_node post.body; nil }
+          end
+        }
+      },
     }.each do |context_title, table_decleration|
       context context_title do
         let(:table) { instance_eval &table_decleration }
@@ -68,15 +76,15 @@ describe ActiveAdmin::Views::AttributesTable do
 
         describe "rendering the rows" do
           [
-            ["Id" , "2"],
+            ["Id" , "1"],
             ["Title" , "Hello World"],
             ["Body" , "<span class=\"empty\">Empty</span>"]
           ].each_with_index do |set, i|
-            let(:title){ set[0] }
-            let(:content){ set[1] }
-            let(:current_row){ table.find_by_tag("tr")[i] }
-
             describe "for #{set[0]}" do
+              let(:title){ set[0] }
+              let(:content){ set[1] }
+              let(:current_row){ table.find_by_tag("tr")[i] }
+
               it "should have the title '#{set[0]}'" do
                 current_row.find_by_tag("th").first.content.should == title
               end
@@ -90,6 +98,17 @@ describe ActiveAdmin::Views::AttributesTable do
       end
     end # describe dsl styles
 
+    it "should allow html options for the row itself" do
+      table = render_arbre_component(assigns) {
+        attributes_table_for(post) do
+          row("Wee", :class => "custom_row", :style => "custom_style") { }
+        end
+      }
+      table.find_by_tag("tr").first.to_s.
+        split("\n").first.lstrip.
+          should == '<tr class="custom_row" style="custom_style">'
+    end
+
     it "should allow html content inside the attributes table" do
       table = render_arbre_component(assigns) {
         attributes_table_for(post) do
@@ -100,11 +119,11 @@ describe ActiveAdmin::Views::AttributesTable do
     end
 
     it "should check if an association exists when an attribute has id in it" do
-      post.author = User.new(:username => "john_doe")
+      post.author = User.new :username => 'john_doe', :first_name => 'John', :last_name => 'Doe'
       table = render_arbre_component(assigns) {
         attributes_table_for post, :author_id
       }
-      table.find_by_tag("td").first.content.should == "john_doe"
+      table.find_by_tag('td').first.content.should == 'John Doe'
     end
 
   end

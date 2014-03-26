@@ -4,37 +4,39 @@ module ActiveAdmin
     # This form builder defines methods to build filter forms such
     # as the one found in the sidebar of the index page of a standard resource.
     class FormBuilder < ::ActiveAdmin::FormBuilder
+      include ::ActiveAdmin::Filters::FormtasticAddons
+
+      def initialize(*args)
+        @use_form_buffer = true # force ActiveAdmin::FormBuilder to use the form buffer
+        super
+      end
 
       def filter(method, options = {})
-        return "" if method.blank?
-        options[:as] ||= default_input_type(method)
-        return "" unless options[:as]
-        content = input(method, options)
-        form_buffers.last << content.html_safe if content
+        if method.present? && options[:as] ||= default_input_type(method)
+          input(method, options)
+        end
       end
 
       protected
 
-      # Returns the default filter type for a given attribute
+      # Returns the default filter type for a given attribute. If you want
+      # to use a custom search method, you have to specify the type yourself.
       def default_input_type(method, options = {})
-        if (column = column_for(method))
+        if method =~ /_(contains|starts_with|ends_with)\z/
+          :string
+        elsif reflection_for(method) || polymorphic_foreign_type?(method)
+          :select
+        elsif column = column_for(method)
           case column.type
           when :date, :datetime
-            return :date_range
+            :date_range
           when :string, :text
-            return :string
-          when :integer
-            return :select if reflection_for(method.to_s.gsub('_id','').to_sym)
-            return :numeric
-          when :float, :decimal
-            return :numeric
+            :string
+          when :integer, :float, :decimal
+            :numeric
           when :boolean
-            return :boolean
+            :boolean
           end
-        end
-
-        if (reflection = reflection_for(method))
-          return :select if reflection.macro == :belongs_to && !reflection.options[:polymorphic]
         end
       end
 
@@ -44,17 +46,6 @@ module ActiveAdmin
 
       def active_admin_input_class_name(as)
         "ActiveAdmin::Inputs::Filter#{as.to_s.camelize}Input"
-      end
-
-      # Returns the column for an attribute on the object being searched
-      # if it exists. Otherwise returns nil
-      def column_for(method)
-        @object.base.columns_hash[method.to_s] if @object.base.respond_to?(:columns_hash)
-      end
-
-      # Returns the association reflection for the method if it exists
-      def reflection_for(method)
-        @object.base.reflect_on_association(method) if @object.base.respond_to?(:reflect_on_association)
       end
 
     end
@@ -72,16 +63,18 @@ module ActiveAdmin
         options[:html][:class] ||= "filter_form"
         options[:as] = :q
         clear_link = link_to(I18n.t('active_admin.clear_filters'), "#", :class => "btn clear_filters_btn")
-        form_for search, options do |f|
-          filters.each do |filter_options|
-            filter_options = filter_options.dup
-            attribute = filter_options.delete(:attribute)
-            f.filter attribute, filter_options
-          end
 
+        form_for search, options do |f|
+          filters.group_by{ |o| o[:attribute] }.each do |attribute, array|
+            opts     = array.last # grab last-defined `filter` call from DSL
+            next if opts.key?(:if)     && !call_method_or_proc_on(self, opts[:if])
+            next if opts.key?(:unless) &&  call_method_or_proc_on(self, opts[:unless])
+
+            f.filter attribute, opts.except(:if, :unless)
+          end
           buttons = content_tag :div, :class => "btn-group" do
-            f.submit(I18n.t('active_admin.filter'), :class => "btn") +
-              clear_link +
+            f.submit(I18n.t('active_admin.filters.buttons.filter')) +
+              link_to(I18n.t('active_admin.filters.buttons.clear'), '#', :class => 'btn') +
               hidden_field_tags_for(params, :except => [:q, :page])
           end
 

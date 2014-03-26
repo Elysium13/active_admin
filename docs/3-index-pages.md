@@ -14,6 +14,44 @@ Built in, Active Admin has the following index renderers:
 All index pages also support scopes, filters, pagination, action items, and
 sidebar sections.
 
+## Multiple Index Pages
+
+Sometime you may want more than one index page for a resource to represent
+different views to the user. If multiple index pages exist, Active Admin will
+automatically build links at the top of the default index page. Including
+multiple views is simple and requires creating multiple index components in
+your resource.
+
+    index do
+      column :image_title
+      default_actions
+    end
+
+    index :as => :grid do |product|
+      link_to(image_tag(product.image_path), admin_product_path(product))
+    end
+
+The first index component will be the default index page unless you indicate
+otherwise by setting :default to true.
+
+    index do
+      column :image_title
+      default_actions
+    end
+
+    index :as => :grid, :default => true do |product|
+      link_to(image_tag(product.image_path), admin_product_path(product))
+    end
+
+Active Admin does not limit the index page to be a table, block, blog or grid.
+If you've [created your own index page](3-index-pages/create-an-index.md) it can be included by setting :as to the
+class of the index component you created.
+
+    index :as => ActiveAdmin::Views::IndexAsTable do
+      column :image_title
+      default_actions
+    end
+
 ## Index Filters
 
 By default the index screen includes a "Filters" sidebar on the right hand side
@@ -105,10 +143,49 @@ You can also disable pagination:
       config.paginate = false
     end
 
+If you have a very large database, you might want to disable SELECT COUNT(*) queries caused by the pagination info at the bottom of the page:
+
+    ActiveAdmin.register Post do
+
+      # disable pagination total
+      index :pagination_total => false do
+        #...
+      end
+
+    end
+
 ## Disable CSV, XML and JSON export
 
 You can remove links to download CSV, XML and JSON exports:
 
     index :download_links => false do
+    end
+
+## Customizing Download Links
+
+There are multiple ways to either remove the download links per resource listing, or customize the formats that are shown.  Customize the formats by passing an array of symbols, or pass false to hide entirely.
+
+Customizing the download links per resource:
+
+    ActiveAdmin.register Post do
+
+      # hide the links entirely
+      index :download_links => false
+
+      # only show a PDF export
+      index :download_links => [:pdf]
+
+    end
+
+If you want to customize download links for every resource throughout the application, configure that in the `active_admin` initializer.
+
+    ActiveAdmin.setup do |config|
+
+      # Disable entirely
+      config.download_links = false
+
+      # Want PDF added to default download links
+      config.download_links = [:csv, :xml, :json, :pdf]
+
     end
 

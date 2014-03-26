@@ -69,38 +69,6 @@ describe ActiveAdmin::FormBuilder do
     end
   end
 
-  context "in general with actions" do
-    let :body do
-      build_form do |f|
-        f.inputs do
-          f.input :title
-          f.input :body
-        end
-        f.actions do
-          f.action :submit, :button_html => { :value => "Submit Me" }
-          f.action :submit, :button_html => { :value => "Another Button" }
-        end
-      end
-    end
-
-    it "should generate a text input" do
-      body.should have_tag("input", :attributes => { :type => "text",
-                                                     :name => "post[title]" })
-    end
-    it "should generate a textarea" do
-      body.should have_tag("textarea", :attributes => { :name => "post[body]" })
-    end
-    it "should only generate the form once" do
-      body.scan(/Title/).size.should == 1
-    end
-    it "should generate actions" do
-      body.should have_tag("input", :attributes => {  :type => "submit",
-                                                          :value => "Submit Me" })
-      body.should have_tag("input", :attributes => {  :type => "submit",
-                                                          :value => "Another Button" })
-    end
-  end
-
   context "when polymorphic relationship" do
     it "should raise error" do
       lambda {
@@ -145,14 +113,14 @@ describe ActiveAdmin::FormBuilder do
         end
         f.actions
       end
-      body.scan(/id=\"post_title\"/).size.should == 1
+      body.scan(/id="post_title"/).size.should == 1
     end
     it "should generate one button and a cancel link" do
       body = build_form do |f|
         f.actions
       end
-      body.scan(/type=\"submit\"/).size.should == 1
-      body.scan(/class=\"cancel\"/).size.should == 1
+      body.scan(/type="submit"/).size.should == 1
+      body.scan(/class="cancel"/).size.should == 1
     end
     it "should generate multiple actions" do
       body = build_form do |f|
@@ -161,13 +129,13 @@ describe ActiveAdmin::FormBuilder do
           f.action :submit, :label => "Create & Edit"
         end
       end
-      body.scan(/type=\"submit\"/).size.should == 2
-      body.scan(/class=\"cancel\"/).size.should == 0
+      body.scan(/type="submit"/).size.should == 2
+      body.scan(/class="cancel"/).size.should == 0
     end
 
   end
 
-  context "with actons" do
+  context "with actions" do
     it "should generate the form once" do
       body = build_form do |f|
         f.inputs do
@@ -175,14 +143,14 @@ describe ActiveAdmin::FormBuilder do
         end
         f.actions
       end
-      body.scan(/id=\"post_title\"/).size.should == 1
+      body.scan(/id="post_title"/).size.should == 1
     end
     it "should generate one button and a cancel link" do
       body = build_form do |f|
         f.actions
       end
-      body.scan(/type=\"submit\"/).size.should == 1
-      body.scan(/class=\"cancel\"/).size.should == 1
+      body.scan(/type="submit"/).size.should == 1
+      body.scan(/class="cancel"/).size.should == 1
     end
     it "should generate multiple actions" do
       body = build_form do |f|
@@ -191,8 +159,8 @@ describe ActiveAdmin::FormBuilder do
           f.action :submit, :label => "Create & Edit"
         end
       end
-      body.scan(/type=\"submit\"/).size.should == 2
-      body.scan(/class=\"cancel\"/).size.should == 0
+      body.scan(/type="submit"/).size.should == 2
+      body.scan(/class="cancel"/).size.should == 0
     end
   end
 
@@ -244,7 +212,7 @@ describe ActiveAdmin::FormBuilder do
         end
       end
       it "should create 2 options" do
-        body.scan(/\<option/).size.should == 3
+        body.scan(/<option/).size.should == 3
       end
     end
 
@@ -255,7 +223,7 @@ describe ActiveAdmin::FormBuilder do
         end
       end
       it "should create 2 radio buttons" do
-        body.scan(/type=\"radio\"/).size.should == 2
+        body.scan(/type="radio"/).size.should == 2
       end
     end
 
@@ -326,6 +294,15 @@ describe ActiveAdmin::FormBuilder do
         end
       end
 
+      it "should translate the attribute name" do
+        begin
+          I18n.backend.store_translations :en, :activerecord => { :attributes => { :post => { :title => 'A very nice title' } } }
+          body.should have_tag 'label', 'A very nice title'
+        ensure
+          I18n.backend.reload!
+        end
+      end
+
       it "should use model name when there is no translation for given model in has many new button" do
         body.should have_tag('a', 'Add New Post')
       end
@@ -335,7 +312,11 @@ describe ActiveAdmin::FormBuilder do
       end
 
       it "should add a link to remove new nested records" do
-        Capybara.string(body).should have_css(".has_many > fieldset > ol > li > a", :class => "button", :href => "#", :content => "Delete")
+        Capybara.string(body).should have_css(".has_many > fieldset > ol > li.has_many_delete > a", :class => "button", :href => "#", :content => "Delete")
+      end
+
+      it "should include the nested record's class name in the js" do
+        body.should have_tag("a", :attributes => { :onclick => /NEW_POST_RECORD/ })
       end
 
       it "should add a link to add new nested records" do
@@ -356,6 +337,91 @@ describe ActiveAdmin::FormBuilder do
       it "should accept a block with a second argument" do
         body.should have_tag("label", "Title 1")
       end
+
+      it "should add a custom header" do
+        body.should have_tag('h3', 'Post')
+      end 
+
+    end
+
+    describe "without heading and new record link" do
+      let :body do
+        build_form({:url => '/categories'}, Category.new) do |f|
+          f.object.posts.build
+          f.has_many :posts, :heading => false, :new_record => false do |p|
+            p.input :title
+          end
+        end
+      end
+
+      it "should not add a header" do
+        body.should_not have_tag('h3', 'Post')
+      end 
+
+      it "should not add link to new nested records" do
+        body.should_not have_tag('a', 'Add New Post')
+      end 
+
+    end  
+
+    describe "with custom heading" do
+      let :body do
+        build_form({:url => '/categories'}, Category.new) do |f|
+          f.object.posts.build
+          f.has_many :posts, :heading => "Test heading" do |p|
+            p.input :title
+          end
+        end
+      end
+
+      it "should add a custom header" do
+        body.should have_tag('h3', 'Test heading')
+      end       
+
+    end  
+
+    describe "with allow destroy" do
+      context "with an existing post" do
+        let :body do
+          build_form({:url => '/categories'}, Category.new) do |f|
+            f.object.posts.build.stub!(:new_record? => false)
+            f.has_many :posts, :allow_destroy => true do |p|
+              p.input :title
+            end
+          end
+        end
+
+        it "should include a boolean field for _destroy" do
+          body.should have_tag("input", :attributes => {:name => "category[posts_attributes][0][_destroy]"})
+        end
+
+        it "should have a check box with 'Remove' as its label" do
+          body.should have_tag("label", :attributes => {:for => "category_posts_attributes_0__destroy"}, :content => "Remove")
+        end
+
+        it "should wrap the destroy field in an li with class 'has_many_remove'" do
+          Capybara.string(body).should have_css(".has_many > fieldset > ol > li.has_many_remove > input")
+        end
+      end
+
+      context "with a new post" do
+        let :body do
+          build_form({:url => '/categories'}, Category.new) do |f|
+            f.object.posts.build
+            f.has_many :posts, :allow_destroy => true do |p|
+              p.input :title
+            end
+          end
+        end
+
+        it "should not have a boolean field for _destroy" do
+          body.should_not have_tag("input", :attributes => {:name => "category[posts_attributes][0][_destroy]"})
+        end
+
+        it "should not have a check box with 'Remove' as its label" do
+          body.should_not have_tag("label", :attributes => {:for => "category_posts_attributes_0__destroy"}, :content => "Remove")
+        end
+      end
     end
 
     pending "should render the block if it returns nil" do
@@ -371,18 +437,23 @@ describe ActiveAdmin::FormBuilder do
     end
   end
 
-  {
-    "input :title, :as => :string"               => /id\=\"post_title\"/,
-    "input :title, :as => :text"                 => /id\=\"post_title\"/,
-    "input :created_at, :as => :time_select"     => /id\=\"post_created_at_2i\"/,
-    "input :created_at, :as => :datetime_select" => /id\=\"post_created_at_2i\"/,
-    "input :created_at, :as => :date_select"     => /id\=\"post_created_at_2i\"/,
+  { # Testing that the same input can be used multiple times
+    "f.input :title, :as => :string"               => /id="post_title"/,
+    "f.input :title, :as => :text"                 => /id="post_title"/,
+    "f.input :created_at, :as => :time_select"     => /id="post_created_at_2i"/,
+    "f.input :created_at, :as => :datetime_select" => /id="post_created_at_2i"/,
+    "f.input :created_at, :as => :date_select"     => /id="post_created_at_2i"/,
+    # Testing that return values don't screw up the form
+    "f.input :title; nil"                          => /id="post_title"/,
+    "f.input :title; []"                           => /id="post_title"/,
+    "[:title].each{ |r| f.input r }"               => /id="post_title"/,
+    "[:title].map { |r| f.input r }"               => /id="post_title"/,
   }.each do |source, regex|
-   it "should properly buffer #{source}" do
+   it "should properly buffer `#{source}`" do
      body = build_form do |f|
        f.inputs do
-         f.instance_eval(source)
-         f.instance_eval(source)
+         eval source
+         eval source
        end
      end
      body.scan(regex).size.should == 2

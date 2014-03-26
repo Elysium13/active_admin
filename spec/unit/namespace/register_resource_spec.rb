@@ -1,10 +1,15 @@
-require 'spec_helper' 
+require 'spec_helper'
+
+# TODO: refactor this file so it doesn't depend on the Admin namespace in such a broken way.
+#       Specifically, the dashboard is already defined and we do let(:namespace) multiple times.
 
 describe ActiveAdmin::Namespace, "registering a resource" do
 
   let(:application){ ActiveAdmin::Application.new }
 
   let(:namespace){ ActiveAdmin::Namespace.new(application, :admin) }
+
+  let(:menu){ namespace.fetch_menu(:default) }
 
   context "with no configuration" do
     before do
@@ -16,12 +21,12 @@ describe ActiveAdmin::Namespace, "registering a resource" do
     it "should create a new controller in the default namespace" do
       defined?(Admin::CategoriesController).should be_true
     end
-    it "should create the dashboard controller" do
-      defined?(Admin::DashboardController).should be_true
+    pending "should not create the dashboard controller" do
+      defined?(Admin::DashboardController).should_not be_true
     end
     it "should create a menu item" do
-      namespace.menu["Categories"].should be_an_instance_of(ActiveAdmin::MenuItem)
-      namespace.menu["Categories"].url.should == :admin_categories_path
+      menu["Categories"].should be_a ActiveAdmin::MenuItem
+      menu["Categories"].instance_variable_get(:@url).should be_a Proc
     end
   end # context "with no configuration"
 
@@ -48,13 +53,12 @@ describe ActiveAdmin::Namespace, "registering a resource" do
       defined?(Admin::MockResourcesController).should be_true
     end
     it "should create a menu item" do
-      namespace.menu["Mock Resources"].should be_an_instance_of(ActiveAdmin::MenuItem)
+      menu["Mock Resources"].should be_an_instance_of(ActiveAdmin::MenuItem)
     end
 
     it "should use the resource as the model in the controller" do
       Admin::MockResourcesController.resource_class.should == Mock::Resource
     end
-
   end # context "with a resource that's namespaced"
 
   describe "finding resource instances" do
@@ -79,7 +83,6 @@ describe ActiveAdmin::Namespace, "registering a resource" do
       publisher = namespace.register Publisher
       namespace.resource_for(Publisher).should == publisher
     end
-
   end # describe "finding resource instances"
 
   describe "adding to the menu" do
@@ -88,7 +91,7 @@ describe ActiveAdmin::Namespace, "registering a resource" do
         namespace.register Category
       end
       it "should add a new menu item" do
-        namespace.menu['Categories'].should_not be_nil
+        menu['Categories'].should_not be_nil
       end
     end # describe "adding as a top level item"
 
@@ -99,10 +102,10 @@ describe ActiveAdmin::Namespace, "registering a resource" do
         end
       end
       it "should generate the parent menu item" do
-        namespace.menu['Blog'].should_not be_nil
+        menu['Blog'].should_not be_nil
       end
       it "should generate its own child item" do
-        namespace.menu['Blog']['Categories'].should_not be_nil
+        menu['Blog']['Categories'].should_not be_nil
       end
     end # describe "adding as a child"
 
@@ -113,32 +116,9 @@ describe ActiveAdmin::Namespace, "registering a resource" do
         end
       end
       it "should not create a menu item" do
-        namespace.menu["Categories"].should be_nil
+        menu["Categories"].should be_nil
       end
     end # describe "disabling the menu"
-    
-    describe "setting menu priority" do
-      before do
-        namespace.register Category do
-          menu :priority => 2
-        end
-      end
-      it "should have a custom priority of 2" do
-        namespace.menu["Categories"].priority.should == 2
-      end
-    end # describe "setting menu priority"
-    
-    describe "setting a condition for displaying" do
-      before do
-        namespace.register Category do
-          menu :if => proc { false }
-        end
-      end
-      it "should have a proc returning false" do
-        namespace.menu["Categories"].display_if_block.should be_instance_of(Proc)
-        namespace.menu["Categories"].display_if_block.call.should == false
-      end
-    end # describe "setting a condition for displaying"
 
     describe "adding as a belongs to" do
       context "when not optional" do
@@ -148,7 +128,7 @@ describe ActiveAdmin::Namespace, "registering a resource" do
           end
         end
         it "should not show up in the menu" do
-          namespace.menu["Posts"].should be_nil
+          menu["Posts"].should be_nil
         end
       end
       context "when optional" do
@@ -158,7 +138,7 @@ describe ActiveAdmin::Namespace, "registering a resource" do
           end
         end
         it "should show up in the menu" do
-          namespace.menu["Posts"].should_not be_nil
+          menu["Posts"].should_not be_nil
         end
       end
     end
@@ -167,14 +147,16 @@ describe ActiveAdmin::Namespace, "registering a resource" do
   describe "dashboard controller name" do
     context "when namespaced" do
       it "should be namespaced" do
-        namespace = ActiveAdmin::Namespace.new(application, :admin)
-        namespace.dashboard_controller_name.should == "Admin::DashboardController"
+        namespace = ActiveAdmin::Namespace.new(application, :one)
+        namespace.register Category
+        defined?(One::CategoriesController).should be_true
       end
     end
     context "when not namespaced" do
       it "should not be namespaced" do
-        namespace = ActiveAdmin::Namespace.new(application, :root)
-        namespace.dashboard_controller_name.should == "DashboardController"
+        namespace = ActiveAdmin::Namespace.new(application, :two)
+        namespace.register Category
+        defined?(Two::CategoriesController).should be_true
       end
     end
   end # describe "dashboard controller name"

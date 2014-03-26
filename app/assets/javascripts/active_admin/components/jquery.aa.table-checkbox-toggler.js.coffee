@@ -1,27 +1,25 @@
-window.AA.TableCheckboxToggler = class AA.TableCheckboxToggler extends AA.CheckboxToggler
+window.ActiveAdmin.TableCheckboxToggler = class ActiveAdmin.TableCheckboxToggler extends ActiveAdmin.CheckboxToggler
   _init: ->
     super
 
   _bind: ->
     super
 
-    @$container.find("tbody").find("td").bind "click", (e) =>
-      if e.target.type != 'checkbox'
-        @_didClickCell(e.target)
-    
+    @$container.find('tbody td').click (e)=>
+      @_didClickCell(e.target) if e.target.type isnt 'checkbox'
+
   _didChangeCheckbox: (checkbox) ->
     super
-    
-    $row = $(checkbox).parents("tr")
+
+    $row = $(checkbox).parents 'tr'
 
     if checkbox.checked
-      $row.addClass("selected")
+      $row.addClass 'selected'
     else
-      $row.removeClass("selected")
+      $row.removeClass 'selected'
 
   _didClickCell: (cell) ->
-    $(cell).parent("tr").find(':checkbox').click()
-    
-( ( $ ) ->
-  $.widget.bridge 'tableCheckboxToggler', AA.TableCheckboxToggler
-)( jQuery )
+    $(cell).parent('tr').find(':checkbox').click()
+
+jQuery ($)->
+  $.widget.bridge 'tableCheckboxToggler', ActiveAdmin.TableCheckboxToggler

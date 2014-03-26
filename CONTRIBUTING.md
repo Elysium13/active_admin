@@ -3,6 +3,16 @@
 This is a guide to contributing to Active Admin. It should walk you through the
 major steps to contributing code to the project.
 
+### 0. 'The test suite is failing locally!'
+
+If your test suite is failing locally and the 
+[Travis build](https://secure.travis-ci.org/gregbell/active_admin.png?branch=master)
+ is passing, you've likely already generated the rails app that is used by 
+ActiveAdmin's test suite and the generated rails app has erroneous files.
+
+To fix this, remove the generated rails app by deleting the directory and its 
+contents (`rm -rf spec/rails`) and then re-running the test suite.
+
 ### 1. Create an Issue on GitHub
 
 The first step to contributing to Active Admin is creating a ticket in our
@@ -28,7 +38,7 @@ working on):
 
 ### 3. Get the test suite running
 
-Active Admin is a gem that many people and businesses rely on for managing data 
+Active Admin is a gem that many people and businesses rely on for managing data
 in their production applications. Bugs are not cool. Although we're not perfect,
 we pride ourselves on writing well tested code. I hope you do too :)
 
@@ -96,7 +106,7 @@ browser, you're ready to test it against multiple versions of Rails.
     $> rake test:major_supported_rails
 
 This command runs the cukes and specs against a couple of major versions of
-Rails.  We will run this command when we review your pull request, if this 
+Rails.  We will run this command when we review your pull request, if this
 rake task isn't passing, the pull request will not be merged in.
 
 

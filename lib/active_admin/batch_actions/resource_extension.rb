@@ -51,8 +51,8 @@ module ActiveAdmin
       end
 
       # Path to the batch action itself
-      def batch_action_path
-        "batch_action_#{route_collection_path}".to_sym
+      def batch_action_path(params = {})
+        [route_collection_path(params), "batch_action"].join("/")
       end
 
       private
@@ -62,16 +62,17 @@ module ActiveAdmin
         destroy_options = {
           :priority => 100,
           :confirm => proc { I18n.t('active_admin.batch_actions.delete_confirmation', :plural_model => active_admin_config.plural_resource_label.downcase) },
-          :if => proc{ controller.action_methods.include?('destroy') }
+          :if => proc{ controller.action_methods.include?('destroy') && authorized?(ActiveAdmin::Auth::DESTROY, active_admin_config.resource_class) }
         }
 
         add_batch_action :destroy, proc { I18n.t('active_admin.delete') }, destroy_options do |selected_ids|
           active_admin_config.resource_class.find(selected_ids).each { |r| r.destroy }
 
-          redirect_to collection_path, :notice => I18n.t("active_admin.batch_actions.succesfully_destroyed",
-                                                         :count => selected_ids.count,
-                                                         :model => active_admin_config.resource_label.downcase,
-                                                         :plural_model => active_admin_config.plural_resource_label.downcase)
+          redirect_to active_admin_config.route_collection_path(params),
+                      :notice => I18n.t("active_admin.batch_actions.succesfully_destroyed",
+                                        :count => selected_ids.count,
+                                        :model => active_admin_config.resource_label.downcase,
+                                        :plural_model => active_admin_config.plural_resource_label(:count => selected_ids.count).downcase)
         end
       end
 
@@ -88,11 +89,11 @@ module ActiveAdmin
     #
     # Examples:
     #
-    #   BatchAction.new :flag 
+    #   BatchAction.new :flag
     # => Will create an action that appears in the action list popover
     #
     #   BatchAction.new( :flag ) { |selection| redirect_to collection_path, :notice => "#{selection.length} users flagged" }
-    # => Will create an action that uses a block to process the request (which receives one paramater of the selected objects) 
+    # => Will create an action that uses a block to process the request (which receives one paramater of the selected objects)
     #
     #   BatchAction.new( "Perform Long Operation on the" ) { |selection| }
     # => You can create batch actions with a title instead of a Symbol

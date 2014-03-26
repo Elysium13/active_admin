@@ -7,8 +7,11 @@ task :setup do
 end
 
 # Run specs and cukes
+# If run by Travis, submit test coverage data to www.coveralls.io
 desc "Run the full suite using 1 core"
-task :test => ['spec:unit', 'spec:integration', 'cucumber', 'cucumber:class_reloading']
+task test: ['spec:unit', 'spec:integration', 'cucumber', 'cucumber:class_reloading'] do
+  require 'coveralls' and Coveralls.push! if ENV['TRAVIS']
+end
 
 namespace :test do
 
@@ -30,7 +33,7 @@ namespace :test do
 
   desc "Run the full suite against the important versions of rails"
   task :major_supported_rails do
-    run_tests_against "3.0.12", "3.1.4", "3.2.3"
+    run_tests_against *TRAVIS_RAILS_VERSIONS
   end
 
   desc "Alias for major_supported_rails"
